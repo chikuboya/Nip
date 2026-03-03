@@ -5,25 +5,30 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04  # ★ 安定している22.04にあえて下げます
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get Date
-        id: get-date
-        run: echo "date=$(date -u +'%Y%m%d')" >> $GITHUB_OUTPUT
-
-      - name: Cache Buildozer
-        uses: actions/cache@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          path: .buildozer
-          key: ${{ runner.os }}-buildozer-${{ steps.get-date.outputs.date }}
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential git python3-dev ffmpeg \
+            libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+            libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev \
+            zlib1g-dev libgstreamer1.0-dev autoconf automake libtool pkg-config
+          pip install --user --upgrade Cython==0.29.33 buildozer setuptools
 
       - name: Build with Buildozer
-        uses: ArtemSashko/buildozer-action@v1.6.1
-        with:
-          buildozer_version: stable
-          python_version: 3.11
+        run: |
+          # パスを通してから実行
+          export PATH=$PATH:$HOME/.local/bin
+          yes | buildozer android debug
         env:
           APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
 
