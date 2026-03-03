@@ -3,6 +3,7 @@ on: [push, pull_request]
 
 jobs:
   build:
+    # 互換性の高い Ubuntu 22.04 を使用
     runs-on: ubuntu-22.04
     
     steps:
@@ -32,34 +33,33 @@ jobs:
 
       - name: Build with Buildozer
         run: |
-          # 1. 既存の古いツールをクリーンアップ
+          # 1. 競合を避けるため既存のツールを一度削除して最新版を入れ直す
           pip uninstall -y buildozer python-for-android
           pip install --user buildozer Cython==0.29.33 python-for-android
           
+          # 2. パスの設定
           export PATH=$PATH:~/.local/bin
           
-          # 2. Android SDKライセンスへの強制同意設定
-          # これが今回のエラーに対する直接の解決策です
+          # 3. ライセンス同意のための設定ファイル作成
           mkdir -p ~/.android
           touch ~/.android/repositories.cfg
           
-          # 3. ファイル名の修正（もしあれば）
+          # 4. ファイル名の修正（もし .txt が付いていたら直す）
           if [ -f buildozer.spec.txt ]; then mv buildozer.spec.txt buildozer.spec; fi
           
-          # 4. Java 17を指定
+          # 5. Java 17 を明示的に指定
           export JAVA_HOME=$JAVA_HOME_17_X64
           
-          # 5. ビルド実行
-          # --auto-accept-sdk-license オプションを明示的に指定して実行します
+          # 6. ビルド実行（詳細ログ表示）
           buildozer -v android debug
         env:
-          # 環境変数でもライセンス承諾を通知
+          # ライセンス自動承諾の環境変数
           ACCEPT_SDK_LICENSE: "yes"
-          # Android SDKのパスを固定（エラー回避用）
           ANDROID_SDK_HOME: /home/runner/.android
         
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: package
+          # ビルド成功時に生成されるAPKの場所
           path: bin/*.apk
