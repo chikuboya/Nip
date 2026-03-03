@@ -1,3 +1,11 @@
+from kivy.core.text import LabelBase, DEFAULT_FONT
+from kivy.resources import resource_add_path
+import os
+
+# 日本語フォントを登録する
+# 'font.ttc' はリポジトリにあるファイル名と一致させてください
+resource_add_path(os.path.dirname(__file__))
+LabelBase.register(DEFAULT_FONT, 'font.ttc')
 import tkinter as tk
 from tkinter import messagebox
 import copy
