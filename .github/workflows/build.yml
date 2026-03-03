@@ -17,16 +17,20 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pip build-essential git python3-dev ffmpeg libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev zlib1g-dev
-          sudo apt-get install -y libgstreamer1.0-gstreamer-lite-dev libgstreamer1.0-plugins-base-dev
+          # パッケージ名を一般的なものに修正しました
+          sudo apt-get install -y \
+            python3-pip build-essential git python3-dev ffmpeg \
+            libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+            libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev \
+            zlib1g-dev libgstreamer1.0-dev gstreamer1.0-plugins-base-dev
+          
           pip install --user --upgrade Cython==0.29.33 buildozer
 
       - name: Build with Buildozer
         run: |
-          # buildozer.specがある場所で実行
-          buildozer android debug
+          # ログを詳細に出し、自動で規約に同意します
+          yes | buildozer android debug
         env:
-          # 自動で利用規約に同意する設定
           APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
 
       - name: Upload APK
