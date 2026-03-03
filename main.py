@@ -19,7 +19,7 @@ font_path = os.path.join(os.path.dirname(__file__), 'font.ttc')
 if os.path.exists(font_path):
     LabelBase.register(DEFAULT_FONT, font_path)
 
-# --- 盤面定義 (変更なし) ---
+# --- 盤面定義 ---
 VALID_COORDS = [
     (2,0), (3,0), (4,0), (5,0), (2,7), (3,7), (4,7), (5,7),
     (1,1), (2,1), (3,1), (4,1), (5,1), (6,1), (1,6), (2,6), (3,6), (4,6), (5,6), (6,6),
@@ -198,27 +198,22 @@ class GameScreen(Screen):
                     else: break
         return list(set(normal_flipped + circle_flipped))
 
-    # --- 強化版 CPU思考ロジック ---
-
     def evaluate_board(self, board, color):
         opp = 'white' if color == 'black' else 'black'
         score = 0
         filled = sum(1 for v in board.values() if v is not None)
         is_endgame = filled > 42
-        
         for coord, st in board.items():
             if st is None: continue
             val = 1.0
             if coord in STRATEGIC_NODES: val += 25.0 if not is_endgame else 5.0
             elif coord in CIRCUMFERENCE: val += 10.0 if not is_endgame else 3.0
-            
             if not is_endgame:
                 liberties = 0
                 for dx, dy in [(1,0),(-1,0),(0,1),(0,-1),(1,1),(1,-1),(-1,1),(-1,-1)]:
                     neighbor = (coord[0]+dx, coord[1]+dy)
                     if neighbor in VALID_COORDS and board[neighbor] is None: liberties += 1
                 val -= liberties * 1.5
-            
             if is_endgame: val += 5.0
             if st == color: score += val
             else: score -= val
@@ -230,7 +225,6 @@ class GameScreen(Screen):
             return self.evaluate_board(board, color)
         if depth == 0 or self.abort_search:
             return self.evaluate_board(board, color)
-
         opp = 'white' if color == 'black' else 'black'
         curr_p = color if is_maximizing else opp
         moves = []
@@ -238,9 +232,7 @@ class GameScreen(Screen):
             f = self.get_flipped(n, curr_p, board)
             if f: moves.append((n, f))
         if not moves: return self.evaluate_board(board, color)
-
         moves.sort(key=lambda x: len(x[1]) + (30 if x[0] in STRATEGIC_NODES else 0), reverse=True)
-
         if is_maximizing:
             v = -99999
             for m, f in moves:
@@ -272,6 +264,14 @@ class GameScreen(Screen):
             if f: moves.append((n, f))
         if not moves: return
 
+        # --- 修正版：CPUにとっての「最初の一手」判定 ---
+        # オセロは初期状態で各色2個ずつあるので、自分の石の数が「2個」ならまだ初手と判定する
+        my_stones = sum(1 for v in self.board.values() if v == self.cpu_color)
+        if my_stones <= 2:
+            self.make_move(random.choice(moves)[0])
+            return
+
+        # --- 指定の時間制限設定 ---
         lv_cfg = {
             1: {'d': 0, 'r': 0.7, 't': 0.1}, 2: {'d': 1, 'r': 0.5, 't': 0.2},
             3: {'d': 1, 'r': 0.3, 't': 0.3}, 4: {'d': 2, 'r': 0.2, 't': 0.4},
@@ -280,6 +280,7 @@ class GameScreen(Screen):
             9: {'d': 8, 'r': 0.0, 't': 1.3}, 10: {'d': 12, 'r': 0.0, 't': 1.5}
         }
         cfg = lv_cfg.get(self.level, lv_cfg[5])
+        
         if random.random() < cfg['r']:
             self.make_move(random.choice(moves)[0])
             return
@@ -305,8 +306,6 @@ class GameScreen(Screen):
             if self.abort_search: break
             else: best_m = cur_best_m
         self.make_move(best_m)
-
-    # --- 共通ロジック ---
 
     def on_touch_down(self, touch):
         if touch.y < Window.height * 0.15: return super().on_touch_down(touch)
