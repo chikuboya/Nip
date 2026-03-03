@@ -1,4 +1,5 @@
 [app]
+
 # (str) アプリのタイトル
 title = Nip Strategy
 
@@ -12,29 +13,37 @@ package.domain = org.chikuboya
 source.dir = .
 
 # (list) 含めるファイルの拡張子
-# ★ここで .ttc（フォントファイル）を忘れずに含めます
+# ★フォントファイル(.ttc)をしっかり含めています
 source.include_exts = py,png,jpg,kv,atlas,ttc
+
+# (list) 含めるファイル名 (特定のファイルがある場合)
+source.include_patterns = font.ttc
 
 # (str) アプリのバージョン
 version = 0.1
 
 # (list) 必要なライブラリ
-# ★日本語表示やAndroid特有の機能に必要です
 requirements = python3,kivy
 
-# (str) アイコン画像がある場合
-# icon.filename = icon.png
+# (str) アイコン画像の設定
+# ★コメントアウトを外し、icon.png を参照するようにしました
+icon.filename = %(source.dir)s/icon.png
 
-# (str) 画面の向き (landscape, sensorLandscape, portrait, all)
+# (str) 画面の向き (縦固定)
 orientation = portrait
 
 # (bool) フルスクリーンにするかどうか
 fullscreen = 1
 
-# (list) Androidの権限（必要に応じて追加）
-# android.permissions = INTERNET
-
-# (int) Android APIレベル（通常はそのままでOK）
+# (int) Android APIレベル
+# 現在のGoogle Play要件に合わせて33〜34あたりが推奨されることが多いですが、
+# 汎用性を考慮してご指定の31をベースにします。
 android.api = 31
-
 android.minapi = 21
+
+# (list) サポートするアーキテクチャ
+# 最近のスマホ向けには arm64-v8a が必須です
+android.archs = arm64-v8a, armeabi-v7a
+
+# (bool) 署名済みのAPK/AABを生成するかどうか (デバッグ時は0でOK)
+android.debug_artifact = 0
