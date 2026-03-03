@@ -1,11 +1,11 @@
 name: Android Build
-on:
-  push:
-    branches: [ main ]
+on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # OSを実績のある22.04に変更（24.04でのマクロエラー回避）
+    runs-on: ubuntu-22.04
+    
     steps:
       - uses: actions/checkout@v4
 
@@ -14,18 +14,41 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Buildozer
+      # Java 17をセットアップ
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install dependencies
         run: |
-          # 最小限のツールだけをインストールします
-          pip install --user --upgrade Cython==0.29.33 buildozer setuptools
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libncurses5-dev libncursesw5-dev \
+            zlib1g-dev \
+            curl unzip \
+            libffi-dev libssl-dev \
+            ant autoconf automake libtool pkg-config
+          # Cythonのバージョンを安定版に固定
+          pip install --user --upgrade "Cython<3.0" buildozer
 
       - name: Build with Buildozer
         run: |
-          # 複雑な事前設定なしで、Buildozer自身に依存関係を解決させます
-          yes | buildozer android debug
+          # フォルダ構成に合わせて cd する（もし直下なら削除してください）
+          # cd android_kivy 
+          
+          if [ -f buildozer.spec.txt ]; then mv buildozer.spec.txt buildozer.spec; fi
+          
+          export PATH=$PATH:~/.local/bin
+          # Java環境変数をBuildozerに適用
+          export JAVA_HOME=$JAVA_HOME_17_X64
+          
+          # ログを詳細に出すために -v を使用
+          yes | buildozer -v android debug
         env:
-          APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
+          ACCEPT_SDK_LICENSE: "yes"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
