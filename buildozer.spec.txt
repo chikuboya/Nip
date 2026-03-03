@@ -1,0 +1,39 @@
+[app]
+# (str) アプリのタイトル
+title = Nip Strategy
+
+# (str) パッケージ名（英小文字とドットのみ）
+package.name = nipstrategy
+
+# (str) ドメイン名（自分の名前など）
+package.domain = org.chikuboya
+
+# (str) ソースコードがある場所
+source.dir = .
+
+# (list) 含めるファイルの拡張子
+# ★ここで .ttc（フォントファイル）を忘れずに含めます
+source.include_exts = py,png,jpg,kv,atlas,ttc
+
+# (str) アプリのバージョン
+version = 0.1
+
+# (list) 必要なライブラリ
+# ★日本語表示やAndroid特有の機能に必要です
+requirements = python3,kivy
+
+# (str) アイコン画像がある場合
+# icon.filename = icon.png
+
+# (str) 画面の向き (landscape, sensorLandscape, portrait, all)
+orientation = portrait
+
+# (bool) フルスクリーンにするかどうか
+fullscreen = 1
+
+# (list) Androidの権限（必要に応じて追加）
+# android.permissions = INTERNET
+
+# (int) Android APIレベル（通常はそのままでOK）
+android.api = 31
+android.minapi = 21
