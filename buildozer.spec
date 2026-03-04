@@ -6,6 +6,9 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,ttc
 version = 0.1
 
+# (str) Icon of the application
+icon.filename = %(source.dir)s/icon.png
+
 # ★ 依存関係を最小限かつ確実に
 requirements = python3,kivy==2.3.0,pillow
 
@@ -24,3 +27,4 @@ log_level = 2
 [buildozer]
 log_level = 2
 warn_on_root = 1
+
