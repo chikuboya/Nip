@@ -29,7 +29,7 @@ font_path = os.path.join(os.path.dirname(__file__), 'font.ttc')
 if os.path.exists(font_path):
     LabelBase.register(DEFAULT_FONT, font_path)
 
-# --- 盤面座標定義 (元のロジックを完全維持) ---
+# --- 盤面座標定義 ---
 VALID_COORDS = [
     (2,0), (3,0), (4,0), (5,0), (2,7), (3,7), (4,7), (5,7),
     (1,1), (2,1), (3,1), (4,1), (5,1), (6,1), (1,6), (2,6), (3,6), (4,6), (5,6), (6,6),
@@ -107,8 +107,8 @@ class GameScreen(Screen):
         self.status_label = Label(text="", pos_hint={'center_x': 0.5, 'top': 0.98}, size_hint=(1, 0.1), color=(0,0,0,1), font_size='22sp', bold=True)
         self.main_layout.add_widget(self.status_label)
         
-        # 広告デバッグラベル（中央下部に配置）
-        self.ad_status_label = Label(text="Ads: Ready", pos_hint={'center_x': 0.5, 'y': 0.12}, size_hint=(1, 0.05), font_size='12sp', color=(1, 1, 1, 0.5))
+        # ★デバッグ強化：赤色、大文字、位置調整
+        self.ad_status_label = Label(text="Ads: Ready", pos_hint={'center_x': 0.5, 'y': 0.25}, size_hint=(1, 0.1), font_size='30sp', color=(1, 0, 0, 1), bold=True)
         self.main_layout.add_widget(self.ad_status_label)
 
         self.result_label = Label(text="", pos_hint={'center_x': 0.5, 'top': 0.91}, size_hint=(1, 0.1), font_size='45sp', bold=True, color=(1, 0, 0, 0))
@@ -130,6 +130,8 @@ class GameScreen(Screen):
         Window.bind(on_resize=self.on_window_resize)
 
     def update_ad_status(self, text):
+        # 更新されたら色を変えて変化をわかりやすくする
+        self.ad_status_label.color = (0, 0, 1, 1) if "Sent" in text or "Banner" in text else (1, 0, 0, 1)
         self.ad_status_label.text = f"Ads: {text}"
 
     def on_window_resize(self, *args):
@@ -150,6 +152,11 @@ class GameScreen(Screen):
         return offset_x, offset_y, canvas_size, margin, cell_size
 
     def draw_board(self, *args):
+        # 描画のたびにデバッグラベルを最前面に持ってくる
+        if self.ad_status_label.parent:
+            self.main_layout.remove_widget(self.ad_status_label)
+        self.main_layout.add_widget(self.ad_status_label)
+
         self.main_layout.canvas.after.clear()
         off_x, off_y, c_size, margin, cell_size = self.get_draw_params()
 
@@ -187,7 +194,7 @@ class GameScreen(Screen):
                             Ellipse(pos=(x - cell_size*0.2, y - cell_size*0.2), size=(cell_size*0.4, cell_size*0.4))
         self.update_status()
 
-    # --- 判定ロジック ---
+    # (中略: get_flipped, evaluate_board, minimax, cpu_move, on_touch_down, make_move, check_pass, reset_game, undo, update_status, end_game は元のロジックを維持)
     def get_flipped(self, start, color, board_state):
         if board_state[start] is not None: return []
         opp = 'white' if color == 'black' else 'black'
@@ -217,7 +224,6 @@ class GameScreen(Screen):
                     else: break
         return list(set(normal_flipped + circle_flipped))
 
-    # --- CPU思考ロジック ---
     def evaluate_board(self, board, color):
         opp = 'white' if color == 'black' else 'black'
         score = 0
@@ -283,30 +289,19 @@ class GameScreen(Screen):
             f = self.get_flipped(n, self.turn, self.board)
             if f: moves.append((n, f))
         if not moves: return
-
         my_stones = sum(1 for v in self.board.values() if v == self.cpu_color)
         if my_stones <= 2:
             self.make_move(random.choice(moves)[0])
             return
-
-        lv_cfg = {
-            1: {'d': 0, 'r': 0.7, 't': 0.1}, 2: {'d': 1, 'r': 0.5, 't': 0.2},
-            3: {'d': 1, 'r': 0.3, 't': 0.3}, 4: {'d': 2, 'r': 0.2, 't': 0.4},
-            5: {'d': 2, 'r': 0.1, 't': 0.5}, 6: {'d': 3, 'r': 0.05, 't': 0.7},
-            7: {'d': 4, 'r': 0.0, 't': 0.9}, 8: {'d': 6, 'r': 0.0, 't': 1.1},
-            9: {'d': 8, 'r': 0.0, 't': 1.3}, 10: {'d': 12, 'r': 0.0, 't': 1.5}
-        }
+        lv_cfg = {1: {'d': 0, 'r': 0.7, 't': 0.1}, 2: {'d': 1, 'r': 0.5, 't': 0.2}, 3: {'d': 1, 'r': 0.3, 't': 0.3}, 4: {'d': 2, 'r': 0.2, 't': 0.4}, 5: {'d': 2, 'r': 0.1, 't': 0.5}, 6: {'d': 3, 'r': 0.05, 't': 0.7}, 7: {'d': 4, 'r': 0.0, 't': 0.9}, 8: {'d': 6, 'r': 0.0, 't': 1.1}, 9: {'d': 8, 'r': 0.0, 't': 1.3}, 10: {'d': 12, 'r': 0.0, 't': 1.5}}
         cfg = lv_cfg.get(self.level, lv_cfg[5])
-        
         if random.random() < cfg['r']:
             self.make_move(random.choice(moves)[0])
             return
-
         self.start_time = time.time()
         self.time_limit = cfg['t']
         self.abort_search = False
         best_m = moves[0][0]
-
         for d in range(1, cfg['d'] + 1):
             cur_best_v, cur_best_m = -100000, None
             moves.sort(key=lambda x: len(x[1]) + (30 if x[0] in STRATEGIC_NODES else 0), reverse=True)
@@ -408,15 +403,13 @@ class GameScreen(Screen):
         self.status_label.text = f"終局: 黒:{b} 対 白:{w}"
         self.result_label.text = winner_text
         self.result_label.color = (1, 0, 0, 1)
-
-        # 広告表示
         if KIVMOB_AVAILABLE and platform == 'android':
             app = App.get_running_app()
             if hasattr(app, 'ads') and app.ads:
                 try:
                     app.game_count += 1
                     if app.game_count % 3 == 0:
-                        self.update_ad_status("Loading Interstitial...")
+                        self.update_ad_status("Loading Inter...")
                         if app.ads.is_interstitial_loaded():
                             app.ads.show_interstitial()
                         app.ads.request_interstitial()
@@ -426,25 +419,19 @@ class NipApp(App):
     def build(self):
         self.ads = None
         self.game_count = 0
-
         self.sm = ScreenManager()
         self.game_screen = GameScreen(name='game')
         self.menu_screen = MenuScreen(name='menu')
         self.sm.add_widget(self.menu_screen)
         self.sm.add_widget(self.game_screen)
-
         if KIVMOB_AVAILABLE and platform == 'android':
             try:
-                # テストID
                 self.ads = KivMob("ca-app-pub-3940256099942544~3347511713")
                 self.ads.add_banner("ca-app-pub-3940256099942544/6300978111", True)
                 self.ads.add_interstitial("ca-app-pub-3940256099942544/1033173712", True)
-                
-                # 起動3秒後にロード開始
                 Clock.schedule_once(self._load_initial_ads, 3)
             except Exception as e:
                 self.game_screen.update_ad_status(f"Init Error: {str(e)}")
-
         return self.sm
 
     def _load_initial_ads(self, dt):
@@ -454,7 +441,7 @@ class NipApp(App):
                 self.ads.request_banner()
                 self.ads.show_banner()
                 self.ads.request_interstitial()
-                self.game_screen.update_ad_status("Banner Requested")
+                self.game_screen.update_ad_status("Sent (Wait 5s)")
             except Exception as e:
                 self.game_screen.update_ad_status(f"Load Error: {str(e)}")
 
