@@ -424,26 +424,45 @@ class NipApp(App):
         self.menu_screen = MenuScreen(name='menu')
         self.sm.add_widget(self.menu_screen)
         self.sm.add_widget(self.game_screen)
+        
         if KIVMOB_AVAILABLE and platform == 'android':
             try:
+                # 1. 準備
                 self.ads = KivMob("ca-app-pub-3940256099942544~3347511713")
-                self.ads.add_banner("ca-app-pub-3940256099942544/6300978111", True)
-                self.ads.add_interstitial("ca-app-pub-3940256099942544/1033173712", True)
+                
+                # 2. バナー追加 (両方の可能性を試す)
+                try:
+                    self.ads.add_banner("ca-app-pub-3940256099942544/6300978111", True)
+                except AttributeError:
+                    self.ads.add_banner_ad("ca-app-pub-3940256099942544/6300978111", True)
+
+                # 3. インタースティシャル追加 (両方の可能性を試す)
+                try:
+                    self.ads.add_interstitial("ca-app-pub-3940256099942544/1033173712", True)
+                except AttributeError:
+                    self.ads.add_interstitial_ad("ca-app-pub-3940256099942544/1033173712", True)
+                
                 Clock.schedule_once(self._load_initial_ads, 3)
             except Exception as e:
-                self.game_screen.update_ad_status(f"Init Error: {str(e)}")
+                self.game_screen.update_ad_status(f"Build Error: {str(e)}")
         return self.sm
 
     def _load_initial_ads(self, dt):
         if self.ads:
             try:
-                self.game_screen.update_ad_status("Requesting Banner...")
-                self.ads.request_banner()
-                self.ads.show_banner()
+                # リクエストも両方の名前を試す
+                try:
+                    self.ads.request_banner()
+                    self.ads.show_banner()
+                except AttributeError:
+                    self.ads.request_banner_ad()
+                    self.ads.show_banner_ad()
+                
                 self.ads.request_interstitial()
-                self.game_screen.update_ad_status("Sent (Wait 5s)")
+                self.game_screen.update_ad_status("Sent & Waiting")
             except Exception as e:
                 self.game_screen.update_ad_status(f"Load Error: {str(e)}")
 
 if __name__ == '__main__':
     NipApp().run()
+
