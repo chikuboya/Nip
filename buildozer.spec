@@ -23,13 +23,13 @@ android.minapi = 21
 android.ndk = 25b
 android.ndk_api = 21
 
-# ★修正ポイント：クォーテーションを外し、直接記述します
+# ★修正：クォーテーションを絶対に付けないでください
 android.gradle_dependencies = com.google.android.gms:play-services-ads:22.6.0
 
-# ★必須：最新の広告ライブラリを動かすための土台
+# ★必須：AndroidXの有効化
 android.enable_androidx = True
 
-# ★ AdMobアプリIDの設定（スペースが含まれないよう注意）
+# ★ AdMobアプリIDの設定
 android.meta_data = com.google.android.gms.ads.APPLICATION_ID=ca-app-pub-3649897440139100~8105670662
 
 # 実行ログの出力レベル
