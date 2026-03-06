@@ -9,18 +9,20 @@ from kivy.core.window import Window
 from kivy.clock import Clock
 from kivy.core.text import LabelBase, DEFAULT_FONT
 from kivy.uix.screenmanager import ScreenManager, Screen
-from kivy.utils import platform  # 追加
+from kivy.utils import platform
 import os
 import math
 import random
 import time
 
-# 広告ライブラリの読み込み（Android環境でのクラッシュ防止）
+# --- 広告設定 (KivMob) の安全な読み込み ---
+KIVMOB_AVAILABLE = False
 try:
-    from kivmob import KivMob
-    KIVMOB_AVAILABLE = True
-except ImportError:
-    KIVMOB_AVAILABLE = False
+    if platform == 'android':
+        from kivmob import KivMob
+        KIVMOB_AVAILABLE = True
+except Exception as e:
+    print(f"DEBUG: KivMob import failed: {e}")
 
 # 日本語フォント登録
 font_path = os.path.join(os.path.dirname(__file__), 'font.ttc')
@@ -397,14 +399,35 @@ class GameScreen(Screen):
         self.result_label.text = winner_text
         self.result_label.color = (1, 0, 0, 1)
 
+        # --- 全画面広告の表示制御 (3回に1回) ---
+        if KIVMOB_AVAILABLE and platform == 'android':
+            try:
+                app = App.get_running_app()
+                # 対局数を1増やす
+                app.game_count += 1
+                # 3で割り切れるときだけ表示
+                if app.game_count % 3 == 0:
+                    app.ads.request_interstitial()
+                    app.ads.show_interstitial()
+            except Exception as e:
+                print(f"DEBUG: Failed to show interstitial: {e}")
+
 class NipApp(App):
     def build(self):
+        # 対局カウンターの初期化
+        self.game_count = 0
+
         # 広告の初期化
         if KIVMOB_AVAILABLE and platform == 'android':
-            self.ads = KivMob("ca-app-pub-3649897440139100~8105670662")
-            self.ads.add_banner("ca-app-pub-3940256099942544/6300978111", True) # テストID
-            self.ads.request_banner()
-            self.ads.show_banner()
+            try:
+                self.ads = KivMob("ca-app-pub-3649897440139100~8105670662")
+                self.ads.add_banner("ca-app-pub-3649897440139100/2778302303", True)
+                self.ads.add_interstitial("ca-app-pub-3649897440139100/8253990263")
+                
+                self.ads.request_banner()
+                self.ads.show_banner()
+            except Exception as e:
+                print(f"DEBUG: AdMob initialization failed: {e}")
 
         self.sm = ScreenManager()
         self.menu_screen = MenuScreen(name='menu')
