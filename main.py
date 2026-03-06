@@ -13,6 +13,7 @@ import os
 import math
 import random
 import time
+from kivmob import KivMob  # 広告ライブラリ
 
 # 日本語フォント登録
 font_path = os.path.join(os.path.dirname(__file__), 'font.ttc')
@@ -66,8 +67,18 @@ class MenuScreen(Screen):
         layout.add_widget(Label(size_hint_y=0.3)) 
         self.add_widget(layout)
 
+    def on_enter(self):
+        # メニュー画面に入った時の広告制御
+        app = App.get_running_app()
+        if hasattr(app, 'ads'):
+            app.ads.show_banner() # バナー表示
+            app.check_and_show_interstitial() # 3回に1回のチェック
+
     def start_game(self, mode):
         app = App.get_running_app()
+        if hasattr(app, 'ads'):
+            app.ads.hide_banner() # 対局中はバナーを隠す
+
         app.game_screen.mode = mode
         if mode == "PvE":
             app.game_screen.cpu_color = 'black' if self.btn_sente.state == 'down' else 'white'
@@ -264,14 +275,11 @@ class GameScreen(Screen):
             if f: moves.append((n, f))
         if not moves: return
 
-        # --- 修正版：CPUにとっての「最初の一手」判定 ---
-        # オセロは初期状態で各色2個ずつあるので、自分の石の数が「2個」ならまだ初手と判定する
         my_stones = sum(1 for v in self.board.values() if v == self.cpu_color)
         if my_stones <= 2:
             self.make_move(random.choice(moves)[0])
             return
 
-        # --- 指定の時間制限設定 ---
         lv_cfg = {
             1: {'d': 0, 'r': 0.7, 't': 0.1}, 2: {'d': 1, 'r': 0.5, 't': 0.2},
             3: {'d': 1, 'r': 0.3, 't': 0.3}, 4: {'d': 2, 'r': 0.2, 't': 0.4},
@@ -394,6 +402,14 @@ class GameScreen(Screen):
 
 class NipApp(App):
     def build(self):
+        # --- 広告の初期化 ---
+        self.ads = KivMob("ca-app-pub-3649897440139100~8105670662")
+        self.ads.new_banner("ca-app-pub-3649897440139100/2778302303", top=False)
+        self.ads.request_interstitial("ca-app-pub-3649897440139100/8253990263")
+
+        # --- カウンターの初期化 ---
+        self.menu_visit_count = 0
+
         self.sm = ScreenManager()
         self.menu_screen = MenuScreen(name='menu')
         self.game_screen = GameScreen(name='game')
@@ -401,6 +417,19 @@ class NipApp(App):
         self.sm.add_widget(self.game_screen)
         return self.sm
 
+    def check_and_show_interstitial(self):
+        """メニュー表示時に呼ばれ、3回に1回広告を表示する"""
+        self.menu_visit_count += 1
+        if self.menu_visit_count >= 3:
+            if self.ads.is_interstitial_loaded():
+                self.ads.show_interstitial()
+                self.menu_visit_count = 0 # リセット
+            else:
+                # ロードがまだなら次回のためにリクエスト
+                self.ads.request_interstitial("ca-app-pub-3649897440139100/8253990263")
+
+    def on_pause(self):
+        return True
+
 if __name__ == '__main__':
     NipApp().run()
-
