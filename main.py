@@ -414,7 +414,7 @@ class NipApp(App):
 
     def on_start(self):
         # すぐ広告出すと落ちるので遅延させる
-        Clock.schedule_once(self.init_ads, 1)
+        Clock.schedule_once(self.init_ads, 3)
 
     def init_ads(self, dt):
         try:
@@ -427,31 +427,27 @@ class NipApp(App):
 
             activity = PythonActivity.mActivity
 
-            # バナー作成
-            adview = AdView(activity)
-            adview.setAdSize(AdSize.BANNER)
+            def add_ads():
+                adview = AdView(activity)
+                adview.setAdSize(AdSize.BANNER)
+                adview.setAdUnitId("ca-app-pub-3940256099942544/6300978111")
 
-            # ★テスト広告（安全）
-            adview.setAdUnitId("ca-app-pub-3940256099942544/6300978111")
+                ad_request = AdRequestBuilder().build()
+                adview.loadAd(ad_request)
 
-            # リクエスト
-            ad_request = AdRequestBuilder().build()
-            adview.loadAd(ad_request)
+                layout = LinearLayout(activity)
+                layout.setOrientation(LinearLayout.VERTICAL)
+                layout.addView(adview)
 
-            # レイアウト
-            layout = LinearLayout(activity)
-            layout.setOrientation(LinearLayout.VERTICAL)
-            layout.addView(adview)
-
-            activity.addContentView(
-                layout,
-                ViewGroupLayoutParams(
-                    ViewGroupLayoutParams.MATCH_PARENT,
-                    ViewGroupLayoutParams.WRAP_CONTENT
+                activity.addContentView(
+                    layout,
+                    ViewGroupLayoutParams(
+                        ViewGroupLayoutParams.MATCH_PARENT,
+                        ViewGroupLayoutParams.WRAP_CONTENT
+                    )
                 )
-            )
 
-            print("AdMob OK")
+            activity.runOnUiThread(add_ads)
 
         except Exception as e:
             print("AdMob エラー:", e)
