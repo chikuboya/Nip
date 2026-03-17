@@ -1,3 +1,4 @@
+from kivmob import KivMob, TestIds
 from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.boxlayout import BoxLayout
@@ -13,7 +14,6 @@ import os
 import math
 import random
 import time
-from kivmob import KivMob, TestIds
 
 # 日本語フォント登録
 font_path = os.path.join(os.path.dirname(__file__), 'font.ttc')
@@ -97,7 +97,11 @@ class GameScreen(Screen):
 
         self.status_label = Label(text="", pos_hint={'center_x': 0.5, 'top': 0.98}, size_hint=(1, 0.1), color=(0,0,0,1), font_size='22sp', bold=True)
         self.main_layout.add_widget(self.status_label)
-        self.result_label = Label(text="", pos_hint={'center_x': 0.5, 'top': 0.91}, size_hint=(1, 0.1), font_size='45sp', bold=True, color=(1, 0, 0, 0))
+
+        self.cpu_info_label = Label(text="", pos_hint={'center_x': 0.5, 'top': 0.93}, size_hint=(1, 0.1), color=(0.1, 0.1, 0.1, 1), font_size='22sp', bold=True)
+        self.main_layout.add_widget(self.cpu_info_label)
+
+        self.result_label = Label(text="", pos_hint={'center_x': 0.5, 'top': 0.85}, size_hint=(1, 0.1), font_size='45sp', bold=True, color=(1, 0, 0, 0))
         self.main_layout.add_widget(self.result_label)
 
         bottom_box = BoxLayout(orientation='horizontal', size_hint=(1, 0.1), pos_hint={'x': 0, 'y': 0.02}, padding=15, spacing=15)
@@ -265,14 +269,11 @@ class GameScreen(Screen):
             if f: moves.append((n, f))
         if not moves: return
 
-        # --- 修正版：CPUにとっての「最初の一手」判定 ---
-        # オセロは初期状態で各色2個ずつあるので、自分の石の数が「2個」ならまだ初手と判定する
         my_stones = sum(1 for v in self.board.values() if v == self.cpu_color)
         if my_stones <= 2:
             self.make_move(random.choice(moves)[0])
             return
 
-        # --- 指定の時間制限設定 ---
         lv_cfg = {
             1: {'d': 0, 'r': 0.7, 't': 0.1}, 2: {'d': 1, 'r': 0.5, 't': 0.2},
             3: {'d': 1, 'r': 0.3, 't': 0.3}, 4: {'d': 2, 'r': 0.2, 't': 0.4},
@@ -385,6 +386,12 @@ class GameScreen(Screen):
         if self.pass_msg: status = f"{self.pass_msg} {status}"
         self.status_label.text = status
 
+        if self.mode == "PvE":
+            cpu_color_jp = "黒" if self.cpu_color == 'black' else "白"
+            self.cpu_info_label.text = f"CPU: {cpu_color_jp} (Lv.{self.level})"
+        else:
+            self.cpu_info_label.text = "人 対 人 モード"
+
     def end_game(self):
         self.is_game_over = True
         b, w = list(self.board.values()).count('black'), list(self.board.values()).count('white')
@@ -393,8 +400,10 @@ class GameScreen(Screen):
         self.result_label.text = winner_text
         self.result_label.color = (1, 0, 0, 1)
 
-class NipApp(App):
+    def go_to_menu(self):
+        self.manager.current = 'menu'
 
+class NipApp(App):
     def build(self):
         self.sm = ScreenManager()
         self.menu_screen = MenuScreen(name='menu')
@@ -405,12 +414,16 @@ class NipApp(App):
 
     def on_start(self):
         try:
+            # テスト用のIDで初期化
             self.ads = KivMob(TestIds.APP)
+            # バナー広告を準備（画面下部に設定）
             self.ads.new_banner(TestIds.BANNER, top_pos=False)
+            # 広告をリクエスト
             self.ads.request_banner()
+            # 広告を表示
             self.ads.show_banner()
-        except:
-            print("AdMob init failed")
+        except Exception as e:
+            print(f"AdMob初期化エラー: {e}")
 
 if __name__ == '__main__':
     NipApp().run()
